@@ -17,15 +17,17 @@ namespace Dxwand.Controllers
     {
         private ApplicationSignInManager _signInManager;
         private ApplicationUserManager _userManager;
-
+        private ApplicationDbContext _context;
         public AccountController()
         {
+            _context = new ApplicationDbContext();
         }
 
         public AccountController(ApplicationUserManager userManager, ApplicationSignInManager signInManager )
         {
             UserManager = userManager;
             SignInManager = signInManager;
+           
         }
 
         public ApplicationSignInManager SignInManager
@@ -75,7 +77,7 @@ namespace Dxwand.Controllers
 
             // This doesn't count login failures towards account lockout
             // To enable password failures to trigger account lockout, change to shouldLockout: true
-            var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
+            var result = await SignInManager.PasswordSignInAsync(model.UserName, model.Password, model.RememberMe, shouldLockout: false);
             switch (result)
             {
                 case SignInStatus.Success:
@@ -139,6 +141,7 @@ namespace Dxwand.Controllers
         [AllowAnonymous]
         public ActionResult Register()
         {
+            ViewBag.Gender = new SelectList(_context.Gender.ToList(), "Id", "Name");
             return View();
         }
 
@@ -149,9 +152,10 @@ namespace Dxwand.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Register(RegisterViewModel model)
         {
+            model.Gender = _context.Gender.Where(c => c.Id == model.GenderId).SingleOrDefault();
             if (ModelState.IsValid)
             {
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                var user = new ApplicationUser { UserName = model.Username, Email = model.Email , PhoneNumber = model.PhoneNumber,DateOfBirth = model.DateOfBirth,GenderId = model.GenderId,};
                 var result = await UserManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
@@ -167,7 +171,7 @@ namespace Dxwand.Controllers
                 }
                 AddErrors(result);
             }
-
+            ViewBag.Gender = new SelectList(_context.Gender.ToList(), "Id", "Name");
             // If we got this far, something failed, redisplay form
             return View(model);
         }
